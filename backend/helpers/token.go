@@ -75,7 +75,7 @@ func UpdateAllToken(signedToken string, signedRefreshToken string, userID string
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	userCollection := config.OpenCollection("users")
+	userCollection := config.OpenCollection("user")
 
 	updateObj := bson.D{
 		{"$set", bson.D{

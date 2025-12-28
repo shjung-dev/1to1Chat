@@ -14,8 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-var userCollection = config.OpenCollection("users")
-
 func Authenticate() gin.HandlerFunc {
 
 	return func(c *gin.Context) {
@@ -51,6 +49,7 @@ func Authenticate() gin.HandlerFunc {
 		userID := claims.UserID
 		var user models.User
 
+		userCollection := config.OpenCollection("user")
 		err = userCollection.FindOne(ctx, bson.M{"user_id": userID}).Decode(&user)
 
 		if err != nil {

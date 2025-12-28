@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -23,9 +24,14 @@ func main() {
 
 	port := os.Getenv("PORT")
 	jwtKey := os.Getenv("JWT_SECRET")
+	uri := os.Getenv("MONGO_URI")
 
+	fmt.Println(port)
+	fmt.Println(jwtKey)
+	fmt.Println(uri)
+	
 	// Connect to the database
-	config.ConnectDatabase()
+	config.ConnectDatabase(uri)
 
 	// Set JWT key for helper functions
 	helpers.SetJWTKey(jwtKey)

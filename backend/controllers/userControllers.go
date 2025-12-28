@@ -17,8 +17,6 @@ import (
 
 var validate = validator.New()
 
-var userCollection = config.OpenCollection("users")
-
 func Signup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -40,6 +38,7 @@ func Signup() gin.HandlerFunc {
 		}
 
 		//ensure every username is unique
+		userCollection := config.OpenCollection("user")
 		count, err := userCollection.CountDocuments(ctx, bson.M{"username": user.Username})
 
 		if err != nil {
@@ -90,6 +89,7 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
+		userCollection := config.OpenCollection("user")
 		err := userCollection.FindOne(ctx, bson.M{"username": user.Username}).Decode(&foundUser)
 		
 		if err != nil {
@@ -144,6 +144,7 @@ func RefreshTokenHandler() gin.HandlerFunc {
 
 		var user models.User
 
+		userCollection := config.OpenCollection("user")
 		err = userCollection.FindOne(ctx, bson.M{"user_id": userID}).Decode(&user)
 
 		if err != nil {
@@ -182,6 +183,7 @@ func GetUsers() gin.HandlerFunc {
 			-> Unlike FindOne, which returns a single document, Find can return multiple documents.
 			MongoDB doesn’t load all documents at once; it gives you a cursor to iterate over the results efficiently.
 		*/
+		userCollection := config.OpenCollection("user")
 		cursor, err := userCollection.Find(ctx, bson.M{})
 
 		if err != nil {
@@ -212,6 +214,8 @@ func SearchUser() gin.HandlerFunc {
 
 		var user models.User
 
+
+		userCollection := config.OpenCollection("user")
 		err := userCollection.FindOne(ctx , bson.M{"username":username}).Decode(&user)
 
 		if err != nil {
