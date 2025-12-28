@@ -12,8 +12,9 @@ import (
 )
 
 type Claims struct {
-	UserID   string `json:"user_id"`
-	Username string `json:"username"`
+	UserID    string `json:"user_id"`
+	Username  string `json:"username"`
+	TokenType string `json:"token_type`
 	jwt.StandardClaims
 }
 
@@ -24,7 +25,7 @@ func SetJWTKey(key string) {
 }
 
 func GetJWTKey() []byte {
-	return jwtKey
+	return []byte(jwtKey)
 }
 
 func GenerateToken(userID string, username string) (string, string) {
@@ -36,16 +37,18 @@ func GenerateToken(userID string, username string) (string, string) {
 	//For access token, userID is needed to identify who is making the request
 	//We need to indicate the expiry date for each token
 	claims := &Claims{
-		UserID:   userID,
-		Username: username,
+		UserID:    userID,
+		Username:  username,
+		TokenType: "access",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: tokenExpiry,
 		},
 	}
 
 	refreshClaims := &Claims{
-		UserID: userID,
-		Username: username,
+		UserID:    userID,
+		Username:  username,
+		TokenType: "refresh",
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: refreshTokenExpiry,
 		},
@@ -53,13 +56,13 @@ func GenerateToken(userID string, username string) (string, string) {
 
 	//Generating tokens
 	//Token is in the form -> <header> <payload> <signature>
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodES256, claims) //now contains <header> <payload>
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims) //now contains <header> <payload>
 	signedAccessToken, err := accessToken.SignedString(jwtKey)       //now contains <header> <payload> <signature>
 	if err != nil {
 		panic(err)
 	}
 
-	refreshToken := jwt.NewWithClaims(jwt.SigningMethodES256, refreshClaims)
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	signedRefreshToken, err := refreshToken.SignedString(jwtKey)
 	if err != nil {
 		panic(err)
@@ -74,12 +77,12 @@ func UpdateAllToken(signedToken string, signedRefreshToken string, userID string
 
 	userCollection := config.OpenCollection("users")
 
-	updateObj := bson.M{
-		"$set": bson.M{
-			"token":         signedToken,
-			"refresh_token": signedRefreshToken,
-			"updated_at":    time.Now(),
-		},
+	updateObj := bson.D{
+		{"$set", bson.D{
+			{"token", signedToken},
+			{"refresh_token", signedRefreshToken},
+			{"updated_at", time.Now()},
+		}},
 	}
 
 	filter := bson.M{"user_id": userID}
@@ -128,7 +131,7 @@ func ValidateToken(tokenString string) (*Claims, error) {
 				return nil, ErrTokenExpired
 			}
 		}
-		return nil , err
+		return nil, err
 	}
 
 	claims, ok := token.Claims.(*Claims)
@@ -138,5 +141,3 @@ func ValidateToken(tokenString string) (*Claims, error) {
 
 	return claims, nil
 }
-
-

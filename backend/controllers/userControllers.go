@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -23,7 +24,7 @@ func Signup() gin.HandlerFunc {
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 
 		defer cancel()
-
+		
 		var user models.User
 
 		//Get user input
@@ -66,7 +67,12 @@ func Signup() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": insertErr.Error()})
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "User created successfully"})
+		c.JSON(http.StatusOK, gin.H{
+			"message": "signup successful",
+			"user": user,
+			"access_token" : accessToken,
+			"refresh_token": refreshToken,
+		})
 
 	}
 }
@@ -85,23 +91,27 @@ func Login() gin.HandlerFunc {
 		}
 
 		err := userCollection.FindOne(ctx, bson.M{"username": user.Username}).Decode(&foundUser)
-
+		
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid username. User is not found"})
+			return
 		}
-
+		
 		passwordIsValid, msg := helpers.VerifyPassword(*foundUser.Password, *user.Password)
 
 		if !passwordIsValid {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": msg})
+			return
 		}
 
 		token, refreshToken := helpers.GenerateToken(foundUser.User_id, *foundUser.Username)
+
 		helpers.UpdateAllToken(token, refreshToken, foundUser.User_id)
 
 		c.JSON(http.StatusOK, gin.H{
-			"user":          foundUser,
-			"token":         token,
+			"message": "login successful",
+			"user": foundUser,
+			"access_token" : token,
 			"refresh_token": refreshToken,
 		})
 	}
@@ -112,18 +122,18 @@ func RefreshTokenHandler() gin.HandlerFunc {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		//Browser sends one field only -> refresh_token from local storage
-		var body struct {
-			RefreshToken string `json:"refresh_token"`
-		}
-
-		if err := c.BindJSON(&body); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "refresh token required"})
+		//Sends request with refresh_token as Authorization Header
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "refresh token is required"})
+			c.Abort()
 			return
 		}
 
-		//Validate Refresh Token
-		claims, err := helpers.ValidateToken(body.RefreshToken)
+		authHeader = strings.TrimPrefix(authHeader, "Bearer ")
+
+		//Validate Token
+		claims, err := helpers.ValidateToken(authHeader)
 		if err != nil {
 			//Refresh token is invalid or expired -> force user to login back
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "relogin"})
@@ -139,6 +149,14 @@ func RefreshTokenHandler() gin.HandlerFunc {
 		if err != nil {
 			//User not found
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "user is not found"})
+			return
+		}
+
+		//Check if the refresh_token matches the one in the database as well
+		if *user.Refresh_token != authHeader {
+			//Wrong refresh_token is used
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "wrong refresh token is used"})
+			return
 		}
 
 		//Generate new tokens
@@ -157,18 +175,17 @@ func GetUsers() gin.HandlerFunc {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
-		
 
 		/*
-		-> cursor is of type *mongo.Cursor.
-		-> It represents a pointer to the result set of your query.
-		-> Unlike FindOne, which returns a single document, Find can return multiple documents. 
-		MongoDB doesn’t load all documents at once; it gives you a cursor to iterate over the results efficiently.
+			-> cursor is of type *mongo.Cursor.
+			-> It represents a pointer to the result set of your query.
+			-> Unlike FindOne, which returns a single document, Find can return multiple documents.
+			MongoDB doesn’t load all documents at once; it gives you a cursor to iterate over the results efficiently.
 		*/
-		cursor , err := userCollection.Find(ctx, bson.M{})
+		cursor, err := userCollection.Find(ctx, bson.M{})
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError , gin.H{"error":err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -176,33 +193,32 @@ func GetUsers() gin.HandlerFunc {
 
 		var users []models.User
 
-		if err := cursor.All(ctx , &users); err != nil {
-			c.JSON(http.StatusInternalServerError , gin.H{"error":err.Error()})
+		if err := cursor.All(ctx, &users); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK , users)
+		c.JSON(http.StatusOK, users)
 	}
 }
 
-func GetUser() gin.HandlerFunc{
+
+func SearchUser() gin.HandlerFunc {
 	return func(c *gin.Context){
-		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		ctx , cancel := context.WithTimeout(context.Background() , 60 * time.Second)
 		defer cancel()
 
-		requestUserID := c.Param("id")
-		
+		username := c.Param("username")
 
 		var user models.User
 
-		err := userCollection.FindOne(ctx , bson.M{"user_id":requestUserID}).Decode(&user)
+		err := userCollection.FindOne(ctx , bson.M{"username":username}).Decode(&user)
 
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			c.JSON(http.StatusNotFound , gin.H{"error": "User not found"})
 			return
 		}
 
-
-		c.JSON(http.StatusOK, user)
+		c.JSON(http.StatusOK , user)
 	}
 }

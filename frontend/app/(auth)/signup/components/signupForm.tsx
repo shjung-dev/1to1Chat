@@ -1,17 +1,75 @@
-import Link from "next/link";
+"use client"
 
-import { Button } from "@/components/ui/button";
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 export function SignUpForm() {
+  const router = useRouter()
+
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    const payload = {
+      username,
+      fullname: `${firstName} ${lastName}`,
+      password,
+    }
+
+    try {
+      const res = await fetch("http://localhost:8080/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Signup failed")
+      }
+
+      const data = await res.json()
+
+      //Backend returns tokens
+      if (data.access_token && data.refresh_token && data.message == "signup successful") {
+        sessionStorage.setItem("access_token", data.access_token)
+        sessionStorage.setItem("refresh_token", data.refresh_token)
+        sessionStorage.setItem("fullname" , data.user.fullname)
+        sessionStorage.setItem("username" , data.user.username)
+      }
+
+      // Redirect after successful signup
+      router.push("/home")
+
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Card className="mx-auto max-w-sm">
       <CardHeader>
@@ -20,48 +78,63 @@ export function SignUpForm() {
           Enter your information to create an account
         </CardDescription>
       </CardHeader>
+
       <CardContent>
-        <form action="">
+        <form onSubmit={handleSubmit}>
           <div className="grid gap-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="first-name">First name</Label>
                 <Input
-                  name="first-name"
                   id="first-name"
-                  placeholder="Max"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
                   required
                 />
               </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="last-name">Last name</Label>
                 <Input
-                  name="last-name"
                   id="last-name"
-                  placeholder="Robinson"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
                   required
                 />
               </div>
             </div>
+
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                name="email"
-                id="email"
-                type="email"
-                placeholder="m@example.com"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
+
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input name="password" id="password" type="password" />
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-            <Button type="submit" className="w-full">
-              Create an account
+
+            {error && (
+              <p className="text-sm text-red-500">{error}</p>
+            )}
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Creating account..." : "Create an account"}
             </Button>
           </div>
         </form>
+
         <div className="mt-4 text-center text-sm">
           Already have an account?{" "}
           <Link href="/" className="underline">
@@ -70,5 +143,5 @@ export function SignUpForm() {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
