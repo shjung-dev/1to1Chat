@@ -35,6 +35,7 @@ func main() {
 
 	// Create Gin router
 	r := gin.Default()
+	r.SetTrustedProxies(nil)
 
 	// Enable CORS for frontend
 	r.Use(cors.New(cors.Config{
