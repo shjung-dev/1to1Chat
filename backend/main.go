@@ -35,7 +35,7 @@ func main() {
 
 	// Create Gin router
 	r := gin.Default()
-	r.SetTrustedProxies(nil)
+	//r.SetTrustedProxies(nil)
 
 	// Enable CORS for frontend
 	r.Use(cors.New(cors.Config{
@@ -51,7 +51,7 @@ func main() {
 		token := c.Query("token")
 
 		if token == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing token or recipient"})
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 		
