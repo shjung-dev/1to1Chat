@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"github.com/shjung-dev/1to1Chat/backend/config"
 	"github.com/shjung-dev/1to1Chat/backend/helpers"
 	"github.com/shjung-dev/1to1Chat/backend/network"
@@ -15,11 +14,14 @@ import (
 )
 
 func main() {
+	/*
+	For testing Locally Only
 	// Load environment variables
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal(err)
 	}
+	*/
 
 	port := os.Getenv("PORT")
 	jwtKey := os.Getenv("JWT_SECRET")
