@@ -8,8 +8,9 @@ type Message = { from: string; to: string; content: string };
 const Home = () => {
   const router = useRouter();
   const socketRef = useRef<WebSocket | null>(null);
-
+  const API_BASE = "https://oneto1chatbackendservice.onrender.com";
   const [fullname, setFullname] = useState("");
+  const [username , setUsername] = useState("");
   const [usernameInput, setUsernameInput] = useState("");
   const [searchedUser, setSearchedUser] = useState<User | null>(null);
 
@@ -23,6 +24,7 @@ const Home = () => {
   /* ---------------- RESTORE SESSION ---------------- */
   useEffect(() => {
     setFullname(sessionStorage.getItem("fullname") || "");
+    setUsername(sessionStorage.getItem("username") || "");
     const storedChats = sessionStorage.getItem("chat_users");
     const storedMessages = sessionStorage.getItem("chat_messages");
     const storedSelected = sessionStorage.getItem("selected_chat");
@@ -37,7 +39,8 @@ const Home = () => {
     const token = sessionStorage.getItem("access_token");
     if (!token) return;
 
-    const ws = new WebSocket(`ws://localhost:8080/ws?token=${token}`);
+    const ws = new WebSocket(`wss://oneto1chatbackendservice.onrender.com/ws?token=${token}`);
+
 
     ws.onopen = () => console.log("WebSocket connected");
 
@@ -87,7 +90,7 @@ const Home = () => {
     if (res.ok) return res.json();
 
     // Refresh token flow
-    const refreshRes = await fetch("http://localhost:8080/refresh", {
+    const refreshRes = await fetch(`${API_BASE}/refresh`, {
       method: "POST",
       headers: { Authorization: `Bearer ${refreshToken}` },
     });
@@ -103,9 +106,9 @@ const Home = () => {
     // reconnect websocket
     socketRef.current?.close();
     socketRef.current = new WebSocket(
-      `ws://localhost:8080/ws?token=${data.access_token}`
+      `wss://oneto1chatbackendservice.onrender.com/ws?token=${data.access_token}`
     );
-
+    
     const retry = await fetch(url, {
       headers: { Authorization: `Bearer ${data.access_token}` },
     });
@@ -125,7 +128,7 @@ const Home = () => {
 
     try {
       const user = await protectedFetch(
-        `http://localhost:8080/user/${usernameInput}`
+        `${API_BASE}/user/${usernameInput}`
       );
       setSearchedUser(user);
     } catch (err: any) {
@@ -177,7 +180,7 @@ const Home = () => {
     <div className="flex min-h-screen p-4 gap-6">
       {/* LEFT */}
       <div className="w-1/3 flex flex-col gap-4">
-        <h1 className="text-2xl font-bold">Welcome, {fullname}!</h1>
+        <h1 className="text-2xl font-bold">Welcome, {fullname} , {username}!</h1>
 
         <div className="flex gap-2">
           <input

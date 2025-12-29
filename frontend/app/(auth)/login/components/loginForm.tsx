@@ -29,9 +29,11 @@ export function LoginForm() {
     setLoading(true);
 
     const payload = { username, password };
+    const API_BASE = "https://oneto1chatbackendservice.onrender.com";
+
 
     try {
-      const res = await fetch("http://localhost:8080/login", {
+      const res = await fetch(`${API_BASE}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

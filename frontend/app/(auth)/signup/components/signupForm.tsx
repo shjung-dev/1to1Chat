@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 
 export function SignUpForm() {
   const router = useRouter()
+  const API_BASE = "https://oneto1chatbackendservice.onrender.com";
 
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -37,7 +38,7 @@ export function SignUpForm() {
     }
 
     try {
-      const res = await fetch("http://localhost:8080/signup", {
+      const res = await fetch(`${API_BASE}/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
