@@ -1,4 +1,4 @@
-# Secure 1-to-1 Real-Time Chat Application
+# 1-to-1 Real-Time Chat Application
 
 A secure 1-to-1 chat application using JWT authentication and WebSockets, built with Go and Next.js.
 
