@@ -2,6 +2,9 @@
 
 A secure 1-to-1 chat application using JWT authentication and WebSockets, built with Go and Next.js.
 
+<img width="7509" height="6340" alt="Architecture" src="https://github.com/user-attachments/assets/b7fd8bf5-1269-41dc-8e2b-2a27fb632e46" />
+
+
 ---
 
 ## Overview
